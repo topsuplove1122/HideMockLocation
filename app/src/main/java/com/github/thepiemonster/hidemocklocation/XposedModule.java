@@ -50,50 +50,34 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 @SuppressLint("PrivateApi")
                 Class<?> clazz = lpparam.classLoader.loadClass("com.android.server.location.gnss.GnssLocationProvider");
-                XposedHelpers.findAndHookMethod(clazz, "onReportLocation",
-                        boolean.class, Location.class,
-                        new XC_MethodHook() {
-                            @Override
-                            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                                param.setResult(null);
-                            }
-                        }
-                );
+                XposedHelpers.findAndHookMethod(clazz, "onReportLocation", boolean.class, Location.class, new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        param.setResult(null);
+                    }
+                });
             }
         } else {
             handleLoadPackageForApps(lpparam);
         }
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private void handleLoadPackageForApps(XC_LoadPackage.LoadPackageParam lpparam) {
         // Hooking Settings.Secure API methods instead of internal methods - longer code, but more SDK independent.
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getString",
-                ContentResolver.class, String.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getString", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getInt",
-                ContentResolver.class, String.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getInt", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getInt",
-                ContentResolver.class, String.class, int.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getInt", ContentResolver.class, String.class, int.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getFloat",
-                ContentResolver.class, String.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getFloat", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getFloat",
-                ContentResolver.class, String.class, float.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getFloat", ContentResolver.class, String.class, float.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getLong",
-                ContentResolver.class, String.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getLong", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getLong",
-                ContentResolver.class, String.class, long.class,
-                hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getLong", ContentResolver.class, String.class, long.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
 
         // Additional info - not implemented - probably will not be implemented in future:
         //
@@ -102,27 +86,27 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
         // (Low risk of checking something only with this way)
 
         // Google Play Services
-        XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "getExtras",
-                hideMockGooglePlayServicesHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "getExtras", hideMockGooglePlayServicesHook.init(lpparam.processName, lpparam.packageName));
 
         // New way of checking if location is mocked, SDK 18+
-        if (Common.JB_MR2_NEWER)
-            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader,
-                    "isFromMockProvider", hideMockProviderHook.init(lpparam.processName, lpparam.packageName));
+        // deprecated in API level 31
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)
+            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isFromMockProvider", hideMockProviderHook.init(lpparam.processName, lpparam.packageName));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isMock", hideMockProviderHook.init(lpparam.processName, lpparam.packageName));
 
         // Self hook - informing Activity that Xposed module is enabled
         if (lpparam.packageName.equals(Common.PACKAGE_NAME))
-            XposedHelpers.findAndHookMethod(Common.ACTIVITY_NAME, lpparam.classLoader, "isModuleEnabled",
-                    XC_MethodReplacement.returnConstant(true));
+            XposedHelpers.findAndHookMethod(Common.ACTIVITY_NAME, lpparam.classLoader, "isModuleEnabled", XC_MethodReplacement.returnConstant(true));
     }
 
     @Override
-    public void initZygote(StartupParam startupParam) throws Throwable {
+    public void initZygote(StartupParam startupParam) {
         hideAllowMockSettingHook = new XC_ProcessNameMethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (!Common.SYSTEM_WHITELIST.contains(this.processName) &&
-                        !Common.SYSTEM_WHITELIST.contains(this.packageName)) {
+                if (!Common.SYSTEM_WHITELIST.contains(this.processName) && !Common.SYSTEM_WHITELIST.contains(this.packageName)) {
                     String methodName = param.method.getName();
                     String setting = (String) param.args[1];
                     if (setting.equals(Settings.Secure.ALLOW_MOCK_LOCATION)) {
@@ -150,14 +134,14 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
         hideMockProviderHook = new XC_ProcessNameMethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+            protected void beforeHookedMethod(MethodHookParam param) {
                 param.setResult(false);
             }
         };
 
         hideMockGooglePlayServicesHook = new XC_ProcessNameMethodHook() {
             @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+            protected void afterHookedMethod(MethodHookParam param) {
                 Bundle extras = (Bundle) param.getResult();
                 if (extras != null && extras.getBoolean(Common.GMS_MOCK_KEY))
                     extras.putBoolean(Common.GMS_MOCK_KEY, false);
