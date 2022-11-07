@@ -2,23 +2,19 @@
 
 buildscript {
     ext.kotlin_version = '1.5.0'
+
     repositories {
-        jcenter()
         mavenCentral()
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.1.2'
-        //classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'    // Android APT dependency can be removed since latest Android Gradle plugin has now built in support for annotation processors
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        classpath 'com.android.tools.build:gradle:7.3.1'
     }
 }
 
 allprojects {
     repositories {
-        jcenter()
+        mavenCentral()
         google()
     }
 }

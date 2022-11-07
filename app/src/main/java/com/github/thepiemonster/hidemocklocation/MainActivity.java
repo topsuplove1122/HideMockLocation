@@ -1,14 +1,10 @@
 package com.github.thepiemonster.hidemocklocation;
 
-import com.github.thepiemonster.hidemocklocation.databinding.ActivityMainBinding;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Criteria;
@@ -17,12 +13,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.app.ActivityCompat;
-
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
@@ -30,12 +20,18 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.app.ActivityCompat;
+
+import com.github.thepiemonster.hidemocklocation.databinding.ActivityMainBinding;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getName();
-    public static SharedPreferences prefs;
-    //private AppsAdapter adapter;
     ActivityMainBinding binding;
     private LocationManager locationManager;
     private String provider;
@@ -43,56 +39,17 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        /*
-        // Load settings
-        prefs = getSharedPreferences(Common.PACKAGE_PREFERENCES, MODE_PRIVATE);
-
-        final Common.ListType listType = getListType();
-        final Set<String> checkedApps = prefs.getStringSet(listType.toString(), new HashSet<String>());
-
-        // Get information about apps
-        final PackageManager pm = getPackageManager();
-        final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-
-        final List<ResolveInfo> infoList = new ArrayList<>(pm.queryIntentActivities(mainIntent, 0));
-        //final List<ResolveInfo> infoList = new ArrayList<>(pm.getInstalledApplications()
-        infoList.sort(new ResolveInfo.DisplayNameComparator(pm));
-
-        final ArrayList<AppItem> apps = new ArrayList<>(infoList.size());
-
-        int checked = 0; // Checked apps counter
-        for (ResolveInfo info : infoList) {
-            if (info.activityInfo != null) {
-                final CharSequence label = info.loadLabel(pm);
-                final Drawable icon = info.loadIcon(pm);
-
-                if (checkedApps.contains(info.activityInfo.packageName)) {
-                    apps.add(new AppItem(label, icon, info.activityInfo.packageName, true));
-                    checked++;
-                } else
-                    apps.add(new AppItem(label, icon, info.activityInfo.packageName));
-            }
-        }*/
-
-        // Go to activity_main layout
-        setTheme(R.style.AppTheme);
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater()); // inflating our xml layout in our activity main binding
         setModuleState(binding);
-        binding.menuDetectionTest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.v(TAG, "View MenuDetectionTest");
-                getMockLocationSetting();
-            }
+
+        binding.menuDetectionTest.setOnClickListener(view -> {
+            Log.v(TAG, "View MenuDetectionTest");
+            getMockLocationSetting();
         });
-        binding.menuAbout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.v(TAG, "Starting About Activity");
-                startActivity(new Intent(MainActivity.this, AboutActivity.class));
-            }
+        binding.menuAbout.setOnClickListener(view -> {
+            Log.v(TAG, "Starting About Activity");
+            startActivity(new Intent(MainActivity.this, AboutActivity.class));
         });
         setContentView(binding.getRoot()); // set content view for our layout
 
@@ -100,47 +57,14 @@ public class MainActivity extends AppCompatActivity {
         this.locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        /*if (!isModuleEnabled()) {
-            appListView.setVisibility(View.GONE);
-            switchLayout.setVisibility(View.GONE);
-            xposedDisabledView.setVisibility(View.VISIBLE);
-            xposedDisabledSubView.setVisibility(View.VISIBLE);
-        }
-        else {
-            appListView.setVisibility(View.VISIBLE);
-            switchLayout.setVisibility(View.VISIBLE);
-            xposedDisabledView.setVisibility(View.GONE);
-            xposedDisabledSubView.setVisibility(View.GONE);
-        }*/
-        Log.v(TAG, "onResume()");
-        //checkLocationPermission();
-        //locationManager.requestLocationUpdates(provider, 400, 1, this);
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        /*File prefsDir = new File(getApplicationInfo().dataDir, "shared_prefs");
-        File prefsFile = new File(prefsDir, Common.PACKAGE_PREFERENCES + ".xml");
-        if (prefsFile.exists()) {
-            prefsFile.setReadable(true, false);
-        }*/
-        Log.v(TAG, "onPause()");
-    }
-
     public void getLocationProvider() {
         Criteria criteria = new Criteria();
         provider = locationManager.getBestProvider(criteria, false);
-        //provider = LocationManager.GPS_PROVIDER; // We want to use the GPS
     }
 
-    @SuppressWarnings("ConstantConditions")
     public void getMockLocationSetting() {
         // Check location permissions
-        if(!checkLocationPermission()) {
+        if (!checkLocationPermission()) {
             return;
         }
 
@@ -152,10 +76,10 @@ public class MainActivity extends AppCompatActivity {
                 getLocationProvider();
                 location = locationManager.getLastKnownLocation(provider);
                 // location could return null if no location updates have been provided since device boot. IE: opened Google maps.
-                if(location == null) {
+                if (location == null) {
                     locationManager.requestLocationUpdates(provider, 0, 0, locationListener);
                     location = locationManager.getLastKnownLocation(provider);
-                    if(location == null) {
+                    if (location == null) {
                         throwErrorDialog("Location is null");
                         return;
                     }
@@ -188,12 +112,16 @@ public class MainActivity extends AppCompatActivity {
         int isMockSettingsNewerThanAndroid6TextCountTotal = isMockSettingsNewerThanAndroid6TextCount + isMockSettingsNewerThanAndroid6BoolCount;
 
         int isMockSettingsNewerThanAndroid6Color;
-        if(isMockSettingsNewerThanAndroid6) {isMockSettingsNewerThanAndroid6Color = Color.RED;} else {isMockSettingsNewerThanAndroid6Color = Color.GREEN;}
+        if (isMockSettingsNewerThanAndroid6) {
+            isMockSettingsNewerThanAndroid6Color = Color.RED;
+        } else {
+            isMockSettingsNewerThanAndroid6Color = Color.GREEN;
+        }
 
         SpannableString string = new SpannableString(
-            infoText +
-            isMockSettingsOlderThanAndroid6Text + isMockSettingsOlderThanAndroid6 +
-            isMockSettingsNewerThanAndroid6Text + isMockSettingsNewerThanAndroid6);
+                infoText +
+                        isMockSettingsOlderThanAndroid6Text + isMockSettingsOlderThanAndroid6 +
+                        isMockSettingsNewerThanAndroid6Text + isMockSettingsNewerThanAndroid6);
         string.setSpan(new ForegroundColorSpan(Color.GRAY), infoTextCount + isMockSettingsOlderThanAndroid6TextCount, infoTextCount + isMockSettingsOlderThanAndroid6TextCount + isMockSettingsOlderThanAndroid6BoolCount, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
         string.setSpan(new ForegroundColorSpan(isMockSettingsNewerThanAndroid6Color), infoTextCount + isMockSettingsOlderThanAndroid6TextCountTotal + isMockSettingsNewerThanAndroid6TextCount, infoTextCount + isMockSettingsOlderThanAndroid6TextCountTotal + isMockSettingsNewerThanAndroid6TextCount + isMockSettingsNewerThanAndroid6BoolCount, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
 
@@ -241,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "GPS LocationChanged");
             double lat = location.getLatitude();
             double lng = location.getLongitude();
-            Log.d(TAG, "Received GPS request for " + String.valueOf(lat) + "," + String.valueOf(lng));
+            Log.d(TAG, "Received GPS request for " + lat + "," + lng);
             //String msg = "LocationChanged: Latitude: "+ lat + "New Longitude: "+ lng;
             //Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
         }
@@ -342,7 +270,6 @@ public class MainActivity extends AppCompatActivity {
 */
 
 
-
     /**
      * Creates an alert dialog window with the supplied exception message
      *
@@ -350,14 +277,14 @@ public class MainActivity extends AppCompatActivity {
      */
     public void throwErrorDialog(String e) {
         new AlertDialog.Builder(this)
-            .setTitle("Exception Thrown")
-            .setMessage(e)
-            .setPositiveButton(R.string.alert_dialog_ok, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    startActivity(new Intent(MainActivity.this,MainActivity.class));
-                }
-            }).create().show();
+                .setTitle("Exception Thrown")
+                .setMessage(e)
+                .setPositiveButton(R.string.alert_dialog_ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        startActivity(new Intent(MainActivity.this, MainActivity.class));
+                    }
+                }).create().show();
     }
 
     /**
