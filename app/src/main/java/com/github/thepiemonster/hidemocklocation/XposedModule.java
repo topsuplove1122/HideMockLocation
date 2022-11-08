@@ -1,11 +1,9 @@
 package com.github.thepiemonster.hidemocklocation;
 
 import android.annotation.SuppressLint;
-import android.content.ContentResolver;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
@@ -17,7 +15,6 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
-    public XC_ProcessNameMethodHook hideAllowMockSettingHook;
     public XC_ProcessNameMethodHook hideMockProviderHook;
     public XC_ProcessNameMethodHook hideMockGooglePlayServicesHook;
 
@@ -64,21 +61,6 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
     @SuppressLint("ObsoleteSdkInt")
     private void handleLoadPackageForApps(XC_LoadPackage.LoadPackageParam lpparam) {
-        // Hooking Settings.Secure API methods instead of internal methods - longer code, but more SDK independent.
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getString", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getInt", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getInt", ContentResolver.class, String.class, int.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getFloat", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getFloat", ContentResolver.class, String.class, float.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getLong", ContentResolver.class, String.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
-        XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getLong", ContentResolver.class, String.class, long.class, hideAllowMockSettingHook.init(lpparam.processName, lpparam.packageName));
-
         // Additional info - not implemented - probably will not be implemented in future:
         //
         // There is one more method - getUriFor. Its returned value can be used
@@ -103,35 +85,6 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
     @Override
     public void initZygote(StartupParam startupParam) {
-        hideAllowMockSettingHook = new XC_ProcessNameMethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (!Common.SYSTEM_WHITELIST.contains(this.processName) && !Common.SYSTEM_WHITELIST.contains(this.packageName)) {
-                    String methodName = param.method.getName();
-                    String setting = (String) param.args[1];
-                    if (setting.equals(Settings.Secure.ALLOW_MOCK_LOCATION)) {
-                        switch (methodName) {
-                            case "getInt":
-                                param.setResult(0);
-                                break;
-                            case "getString":
-                                param.setResult("0");
-                                break;
-                            case "getFloat":
-                                param.setResult(0.0f);
-                                break;
-                            case "getLong":
-                                param.setResult(0L);
-                                break;
-                            default:
-                                break;
-
-                        }
-                    }
-                }
-            }
-        };
-
         hideMockProviderHook = new XC_ProcessNameMethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
