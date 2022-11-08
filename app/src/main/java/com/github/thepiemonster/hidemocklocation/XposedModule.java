@@ -1,6 +1,9 @@
 package com.github.thepiemonster.hidemocklocation;
 
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
+import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 
@@ -34,6 +37,35 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+        if (lpparam == null) {
+            return;
+        }
+
+        if (lpparam.packageName.equals("android")) {
+            /*
+             * Disable GNSSLocation
+             *
+             * check Android_"Refactor Java GNSS HAL" commit.
+             */
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                @SuppressLint("PrivateApi")
+                Class<?> clazz = lpparam.classLoader.loadClass("com.android.server.location.gnss.GnssLocationProvider");
+                XposedHelpers.findAndHookMethod(clazz, "onReportLocation",
+                        boolean.class, Location.class,
+                        new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                param.setResult(null);
+                            }
+                        }
+                );
+            }
+        } else {
+            handleLoadPackageForApps(lpparam);
+        }
+    }
+
+    private void handleLoadPackageForApps(XC_LoadPackage.LoadPackageParam lpparam) {
         // Hooking Settings.Secure API methods instead of internal methods - longer code, but more SDK independent.
         XposedHelpers.findAndHookMethod("android.provider.Settings.Secure", lpparam.classLoader, "getString",
                 ContentResolver.class, String.class,
