@@ -59,5 +59,4 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'com.google.gms:google-services:4.3.14'
     implementation 'com.google.android.material:material:1.8.0-alpha02'
-    implementation 'com.drakeet.about:about:2.5.0'
 }
