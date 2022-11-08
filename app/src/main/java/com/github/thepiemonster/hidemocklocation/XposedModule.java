@@ -15,22 +15,8 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
-    public XC_ProcessNameMethodHook hideMockProviderHook;
-    public XC_ProcessNameMethodHook hideMockGooglePlayServicesHook;
-
-    // Hook with additional member - processName
-    // Used to whitelisting/blacklisting apps
-    static class XC_ProcessNameMethodHook extends XC_MethodHook {
-
-        String processName;
-        String packageName;
-
-        private XC_MethodHook init(String processName, String packageName) {
-            this.processName = processName;
-            this.packageName = packageName;
-            return this;
-        }
-    }
+    public XC_MethodHook hideMockProviderHook;
+    public XC_MethodHook hideMockGooglePlayServicesHook;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -68,15 +54,15 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
         // (Low risk of checking something only with this way)
 
         // Google Play Services
-        XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "getExtras", hideMockGooglePlayServicesHook.init(lpparam.processName, lpparam.packageName));
+        XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "getExtras", hideMockGooglePlayServicesHook);
 
         // New way of checking if location is mocked, SDK 18+
         // deprecated in API level 31
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)
-            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isFromMockProvider", hideMockProviderHook.init(lpparam.processName, lpparam.packageName));
+            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isFromMockProvider", hideMockProviderHook);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isMock", hideMockProviderHook.init(lpparam.processName, lpparam.packageName));
+            XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isMock", hideMockProviderHook);
 
         // Self hook - informing Activity that Xposed module is enabled
         if (lpparam.packageName.equals(Common.PACKAGE_NAME))
@@ -85,14 +71,14 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
     @Override
     public void initZygote(StartupParam startupParam) {
-        hideMockProviderHook = new XC_ProcessNameMethodHook() {
+        hideMockProviderHook = new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
                 param.setResult(false);
             }
         };
 
-        hideMockGooglePlayServicesHook = new XC_ProcessNameMethodHook() {
+        hideMockGooglePlayServicesHook = new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 Bundle extras = (Bundle) param.getResult();
