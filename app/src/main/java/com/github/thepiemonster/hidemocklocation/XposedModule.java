@@ -40,6 +40,12 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                     }
                 });
             }
+        }
+        // Self hook - informing Activity that Xposed module is enabled
+        else if (lpparam.packageName.equals(BuildConfig.APPLICATION_ID)) {
+            XposedHelpers.findAndHookMethod(MainActivity.class,
+                    "isModuleEnabled",
+                    XC_MethodReplacement.returnConstant(true));
         } else {
             handleLoadPackageForApps(lpparam);
         }
@@ -63,10 +69,6 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "isMock", hideMockProviderHook);
-
-        // Self hook - informing Activity that Xposed module is enabled
-        if (lpparam.packageName.equals(Common.PACKAGE_NAME))
-            XposedHelpers.findAndHookMethod(Common.ACTIVITY_NAME, lpparam.classLoader, "isModuleEnabled", XC_MethodReplacement.returnConstant(true));
     }
 
     @Override
