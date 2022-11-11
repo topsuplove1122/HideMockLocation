@@ -3,7 +3,6 @@ package com.github.thepiemonster.hidemocklocation;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -42,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater()); // inflating our xml layout in our activity main binding
         setModuleState(binding);
+
+        binding.txtVersion.setText(BuildConfig.VERSION_NAME);
 
         binding.menuDetectionTest.setOnClickListener(view -> {
             Log.v(TAG, "View MenuDetectionTest");
@@ -126,10 +127,7 @@ public class MainActivity extends AppCompatActivity {
         string.setSpan(new ForegroundColorSpan(isMockSettingsNewerThanAndroid6Color), infoTextCount + isMockSettingsOlderThanAndroid6TextCountTotal + isMockSettingsNewerThanAndroid6TextCount, infoTextCount + isMockSettingsOlderThanAndroid6TextCountTotal + isMockSettingsNewerThanAndroid6TextCount + isMockSettingsNewerThanAndroid6BoolCount, SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         dialogBuilder.setMessage(string);
-        dialogBuilder.setNegativeButton(getString(R.string.alert_dialog_close), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-            }
+        dialogBuilder.setNegativeButton(getString(R.string.alert_dialog_close), (dialogInterface, i) -> {
         });
         dialogBuilder.show();
     }
@@ -279,12 +277,7 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Exception Thrown")
                 .setMessage(e)
-                .setPositiveButton(R.string.alert_dialog_ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        startActivity(new Intent(MainActivity.this, MainActivity.class));
-                    }
-                }).create().show();
+                .setPositiveButton(R.string.alert_dialog_ok, (dialogInterface, i) -> startActivity(new Intent(MainActivity.this, MainActivity.class))).create().show();
     }
 
     /**
@@ -297,15 +290,12 @@ public class MainActivity extends AppCompatActivity {
                 new AlertDialog.Builder(this)
                         .setTitle("Location Permission Required")
                         .setMessage("This application requires location permissions")
-                        .setPositiveButton(R.string.alert_dialog_ok, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                //Prompt the user once explanation has been shown
-                                ActivityCompat.requestPermissions(MainActivity.this,
-                                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION);
-                                //Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                                //startActivity(intent);
-                            }
+                        .setPositiveButton(R.string.alert_dialog_ok, (dialogInterface, i) -> {
+                            //Prompt the user once explanation has been shown
+                            ActivityCompat.requestPermissions(MainActivity.this,
+                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION);
+                            //Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            //startActivity(intent);
                         }).create().show();
             } else {
                 ActivityCompat.requestPermissions(this,
