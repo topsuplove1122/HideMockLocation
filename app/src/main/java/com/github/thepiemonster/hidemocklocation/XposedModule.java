@@ -5,10 +5,13 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 
+import java.lang.reflect.Method;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XC_MethodReplacement;
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -33,12 +36,16 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 @SuppressLint("PrivateApi")
                 Class<?> clazz = lpparam.classLoader.loadClass("com.android.server.location.gnss.GnssLocationProvider");
-                XposedHelpers.findAndHookMethod(clazz, "onReportLocation", boolean.class, Location.class, new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        param.setResult(null);
-                    }
-                });
+
+                Method handleReportLocation = XposedHelpers.findMethodExactIfExists(clazz, "handleReportLocation", boolean.class, Location.class);
+                if (handleReportLocation != null) {
+                    XposedBridge.hookMethod(handleReportLocation, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            param.setResult(null);
+                        }
+                    });
+                }
             }
         }
         // Self hook - informing Activity that Xposed module is enabled
