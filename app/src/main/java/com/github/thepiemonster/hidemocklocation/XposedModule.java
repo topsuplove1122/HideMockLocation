@@ -21,6 +21,16 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
     public XC_MethodHook hideMockProviderHook;
     public XC_MethodHook hideMockGooglePlayServicesHook;
 
+
+    @SuppressLint("PrivateApi")
+    private Class<?> loadClassIfExist(XC_LoadPackage.LoadPackageParam lpparam, String name) {
+        try {
+            return lpparam.classLoader.loadClass(name);
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         if (lpparam == null) {
@@ -28,16 +38,43 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
         }
 
         if (lpparam.packageName.equals("android")) {
-            /*
-             * Disable GNSSLocation
-             *
-             * check Android_"Refactor Java GNSS HAL" commit.
-             */
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                @SuppressLint("PrivateApi")
-                Class<?> clazz = lpparam.classLoader.loadClass("com.android.server.location.gnss.GnssLocationProvider");
+////            // First way
+//            Class<?> GnssNativeCls = loadClassIfExist(lpparam, "com.android.server.location.gnss.hal.GnssNative");
+//            if (GnssNativeCls == null) {
+//                // Android < 12
+//                GnssNativeCls = loadClassIfExist(lpparam, "com.android.server.location.gnss.GnssNative");
+//            }
+//            if (GnssNativeCls != null) {
+//                Method GnssNativeCls_isSupported = XposedHelpers.findMethodExactIfExists(GnssNativeCls, "isSupported");
+//                if (GnssNativeCls_isSupported != null) {
+//                    XposedBridge.hookMethod(GnssNativeCls_isSupported, new XC_MethodHook() {
+//                        @Override
+//                        protected void beforeHookedMethod(MethodHookParam param) {
+//                            param.setResult(false);
+//                        }
+//                    });
+//                }
+//            }
 
-                Method handleReportLocation = XposedHelpers.findMethodExactIfExists(clazz, "handleReportLocation", boolean.class, Location.class);
+            // Second way
+            Class<?> GnssLocationProviderCls = loadClassIfExist(lpparam, "com.android.server.location.gnss.GnssLocationProvider");
+            if (GnssLocationProviderCls == null) {
+                // Android < 12
+                GnssLocationProviderCls = loadClassIfExist(lpparam, "com.android.server.location.GnssLocationProvider");
+            }
+
+            if (GnssLocationProviderCls != null) {
+                Method handleRequestLocation = XposedHelpers.findMethodExactIfExists(GnssLocationProviderCls, "handleRequestLocation", boolean.class, boolean.class);
+                Method handleReportLocation = XposedHelpers.findMethodExactIfExists(GnssLocationProviderCls, "handleReportLocation", boolean.class, Location.class);
+
+                if (handleRequestLocation != null) {
+                    XposedBridge.hookMethod(handleRequestLocation, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            param.setResult(null);
+                        }
+                    });
+                }
                 if (handleReportLocation != null) {
                     XposedBridge.hookMethod(handleReportLocation, new XC_MethodHook() {
                         @Override
