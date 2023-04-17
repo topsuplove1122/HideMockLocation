@@ -86,12 +86,6 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                     });
                 }
             }
-        }
-        // Self hook - informing Activity that Xposed module is enabled
-        else if (lpparam.packageName.equals(BuildConfig.APPLICATION_ID)) {
-            XposedHelpers.findAndHookMethod(MainActivity.class,
-                    "isModuleEnabled",
-                    XC_MethodReplacement.returnConstant(true));
         } else {
             // GPS Joystick (Samsung devices) bug fix
             String packageName = lpparam.packageName;
