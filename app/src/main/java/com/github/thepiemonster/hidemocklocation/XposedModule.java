@@ -1,10 +1,12 @@
 package com.github.thepiemonster.hidemocklocation;
 
 import android.annotation.SuppressLint;
+import android.app.Service;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -32,7 +34,7 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
     }
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         if (lpparam == null) {
             return;
         }
@@ -91,7 +93,39 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                     "isModuleEnabled",
                     XC_MethodReplacement.returnConstant(true));
         } else {
-            handleLoadPackageForApps(lpparam);
+            // GPS Joystick (Samsung devices) bug fix
+            String packageName = lpparam.packageName;
+            Class<?> joystick_MapOverlayService = loadClassIfExist(lpparam, packageName + ".service.MapOverlayService");
+            if (joystick_MapOverlayService != null) {
+                Method joystick_MapOverlayService_onDestroy = XposedHelpers.findMethodExactIfExists(
+                        joystick_MapOverlayService,
+                        "onDestroy"
+                );
+                if (joystick_MapOverlayService_onDestroy != null) {
+                    XposedBridge.hookMethod(joystick_MapOverlayService_onDestroy, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            Service thisObject = (Service) param.thisObject;
+                            Method _internalDestroyMethod = XposedHelpers.findMethodExactIfExists(
+                                    thisObject.getClass(),
+                                    "p"
+                            );
+                            if (_internalDestroyMethod != null) {
+                                try {
+                                    _internalDestroyMethod.invoke(thisObject);
+                                    param.setResult(null);
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    // do nothing.
+                                }
+                            } else {
+                                XposedBridge.log("Failed to call internal destroy method ( Joystick )");
+                            }
+                        }
+                    });
+                }
+            } else {
+                handleLoadPackageForApps(lpparam);
+            }
         }
     }
 
