@@ -1,18 +1,17 @@
 package com.github.thepiemonster.hidemocklocation;
 
+import static com.github.thepiemonster.hidemocklocation.Common.loadClassIfExist;
+
 import android.annotation.SuppressLint;
-import android.app.Service;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -22,16 +21,6 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
     public XC_MethodHook hideMockProviderHook;
     public XC_MethodHook hideMockGooglePlayServicesHook;
-
-
-    @SuppressLint("PrivateApi")
-    private Class<?> loadClassIfExist(XC_LoadPackage.LoadPackageParam lpparam, String name) {
-        try {
-            return lpparam.classLoader.loadClass(name);
-        } catch (ClassNotFoundException e) {
-            return null;
-        }
-    }
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
@@ -86,70 +75,8 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                     });
                 }
             }
-        } else {
-            // GPS Joystick (Samsung devices) bug fix
-            String packageName = lpparam.packageName;
-            Class<?> joystick_MapOverlayService = loadClassIfExist(lpparam, packageName + ".service.MapOverlayService");
-            Class<?> joystick_OverlayService = loadClassIfExist(lpparam, packageName + ".service.OverlayService");
-            if (joystick_MapOverlayService != null && joystick_OverlayService != null) {
-                Method joystick_MapOverlayService_onDestroy = XposedHelpers.findMethodExactIfExists(
-                        joystick_MapOverlayService,
-                        "onDestroy"
-                );
-                Method joystick_OverlayService_onDestroy = XposedHelpers.findMethodExactIfExists(
-                        joystick_OverlayService,
-                        "onDestroy"
-                );
-                if (joystick_MapOverlayService_onDestroy != null) {
-                    XposedBridge.hookMethod(joystick_MapOverlayService_onDestroy, new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            Service thisObject = (Service) param.thisObject;
-                            Method _internalDestroyMethod = XposedHelpers.findMethodExactIfExists(
-                                    thisObject.getClass(),
-                                    // 4.3.2
-                                    "p"
-                            );
-                            if (_internalDestroyMethod != null) {
-                                try {
-                                    _internalDestroyMethod.invoke(thisObject);
-                                    param.setResult(null);
-                                } catch (IllegalAccessException | InvocationTargetException e) {
-                                    // do nothing.
-                                }
-                            } else {
-                                XposedBridge.log("Failed to call internal destroy method(Joystick@MapOverlayService)");
-                            }
-                        }
-                    });
-                }
-
-                if (joystick_OverlayService_onDestroy != null) {
-                    XposedBridge.hookMethod(joystick_OverlayService_onDestroy, new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            Service thisObject = (Service) param.thisObject;
-                            Method _internalDestroyMethod = XposedHelpers.findMethodExactIfExists(
-                                    thisObject.getClass(),
-                                    // 4.3.2
-                                    "D"
-                            );
-                            if (_internalDestroyMethod != null) {
-                                try {
-                                    _internalDestroyMethod.invoke(thisObject);
-                                    param.setResult(null);
-                                } catch (IllegalAccessException | InvocationTargetException e) {
-                                    // do nothing.
-                                }
-                            } else {
-                                XposedBridge.log("Failed to call internal destroy method(Joystick2OverlayService)");
-                            }
-                        }
-                    });
-                }
-            } else {
-                handleLoadPackageForApps(lpparam);
-            }
+        } else if (!GPSJoystickFixer.tryFixJoystickApp(lpparam)) {
+            handleLoadPackageForApps(lpparam);
         }
     }
 
