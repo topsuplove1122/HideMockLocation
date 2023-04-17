@@ -90,9 +90,14 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
             // GPS Joystick (Samsung devices) bug fix
             String packageName = lpparam.packageName;
             Class<?> joystick_MapOverlayService = loadClassIfExist(lpparam, packageName + ".service.MapOverlayService");
-            if (joystick_MapOverlayService != null) {
+            Class<?> joystick_OverlayService = loadClassIfExist(lpparam, packageName + ".service.OverlayService");
+            if (joystick_MapOverlayService != null && joystick_OverlayService != null) {
                 Method joystick_MapOverlayService_onDestroy = XposedHelpers.findMethodExactIfExists(
                         joystick_MapOverlayService,
+                        "onDestroy"
+                );
+                Method joystick_OverlayService_onDestroy = XposedHelpers.findMethodExactIfExists(
+                        joystick_OverlayService,
                         "onDestroy"
                 );
                 if (joystick_MapOverlayService_onDestroy != null) {
@@ -102,6 +107,7 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                             Service thisObject = (Service) param.thisObject;
                             Method _internalDestroyMethod = XposedHelpers.findMethodExactIfExists(
                                     thisObject.getClass(),
+                                    // 4.3.2
                                     "p"
                             );
                             if (_internalDestroyMethod != null) {
@@ -112,7 +118,31 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                                     // do nothing.
                                 }
                             } else {
-                                XposedBridge.log("Failed to call internal destroy method ( Joystick )");
+                                XposedBridge.log("Failed to call internal destroy method(Joystick@MapOverlayService)");
+                            }
+                        }
+                    });
+                }
+
+                if (joystick_OverlayService_onDestroy != null) {
+                    XposedBridge.hookMethod(joystick_OverlayService_onDestroy, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            Service thisObject = (Service) param.thisObject;
+                            Method _internalDestroyMethod = XposedHelpers.findMethodExactIfExists(
+                                    thisObject.getClass(),
+                                    // 4.3.2
+                                    "D"
+                            );
+                            if (_internalDestroyMethod != null) {
+                                try {
+                                    _internalDestroyMethod.invoke(thisObject);
+                                    param.setResult(null);
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    // do nothing.
+                                }
+                            } else {
+                                XposedBridge.log("Failed to call internal destroy method(Joystick2OverlayService)");
                             }
                         }
                     });
