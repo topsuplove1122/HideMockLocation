@@ -83,8 +83,17 @@ public class GPSJoystickFixer {
         return false;
     }
 
+    static boolean isJoystickApp(XC_LoadPackage.LoadPackageParam lpparam) {
+        String packageName = lpparam.packageName;
+        Class<?> joystick_MapOverlayService = loadClassIfExist(lpparam, packageName + ".service.MapOverlayService");
+        Class<?> joystick_OverlayService = loadClassIfExist(lpparam, packageName + ".service.OverlayService");
+        return joystick_MapOverlayService != null && joystick_OverlayService != null;
+    }
+
     static boolean fixTestProviderUpdates(XC_LoadPackage.LoadPackageParam lpparam) {
         String packageName = lpparam.packageName;
+        if (!isJoystickApp(lpparam))
+            return false;
         Class<?> joystick_MockLocationManager = loadClassIfExist(lpparam, packageName + ".b.u");
         if (joystick_MockLocationManager != null) {
             Method updateLocationMethod = XposedHelpers.findMethodExactIfExists(joystick_MockLocationManager,
