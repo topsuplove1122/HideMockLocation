@@ -3,6 +3,7 @@ package com.github.thepiemonster.hidemocklocation;
 import static com.github.thepiemonster.hidemocklocation.Common.loadClassIfExist;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -77,7 +78,32 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
             }
         } else if (!GPSJoystickFixer.tryFixJoystickApp(lpparam)) {
             handleLoadPackageForApps(lpparam);
+            tryHideSamsungIAPDialog(lpparam);
         }
+    }
+
+    private void tryHideSamsungIAPDialog(XC_LoadPackage.LoadPackageParam lpparam) {
+        Class<?> SamsungIAPHelperUtil = loadClassIfExist(lpparam, "com.samsung.android.sdk.iap.lib.helper.HelperUtil");
+        if (SamsungIAPHelperUtil == null)
+            return;
+        Method showUpdateGalaxyStoreDialog = XposedHelpers.findMethodExactIfExists(SamsungIAPHelperUtil,
+                "showUpdateGalaxyStoreDialog",
+                Activity.class);
+        if (showUpdateGalaxyStoreDialog == null)
+            return;
+
+        XposedBridge.hookMethod(showUpdateGalaxyStoreDialog, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                try {
+                    Activity activity = (Activity) param.args[0];
+                    activity.finish();
+                    param.setResult(null);
+                } catch (Exception e) {
+                    // do nothing.
+                }
+            }
+        });
     }
 
     @SuppressLint("ObsoleteSdkInt")
