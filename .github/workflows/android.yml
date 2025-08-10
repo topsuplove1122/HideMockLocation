@@ -14,12 +14,12 @@ jobs:
         with:
           distribution: "temurin"
           java-version: 17
-      - name: Decode Keystore
-        uses: timheuer/base64-to-file@v1
-        id: android_keystore
-        with:
-            fileName: "android_keystore.keystore"
-            encodedString: ${{ secrets.KEYSTORE }}
+      # - name: Decode Keystore
+      #   uses: timheuer/base64-to-file@v1
+      #   id: android_keystore
+      #   with:
+      #       fileName: "android_keystore.keystore"
+      #       encodedString: ${{ secrets.KEYSTORE }}
       - name: Build the app
         run: ./gradlew assembleRelease -PshowUpdateButton=true
       - name: Upload
