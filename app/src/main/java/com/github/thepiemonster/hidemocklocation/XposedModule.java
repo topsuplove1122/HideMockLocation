@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.location.LocationManager;
 
 import java.lang.reflect.Method;
 
@@ -76,10 +77,41 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
                     });
                 }
             }
+            tryHookLocationManagerService(lpparam);
         } else if (!GPSJoystickFixer.tryFixJoystickApp(lpparam)) {
             handleLoadPackageForApps(lpparam);
             tryHideSamsungIAPDialog(lpparam);
         }
+    }
+
+    private void tryHookLocationManagerService(XC_LoadPackage.LoadPackageParam lpparam) {
+        // 檢查 LocationManagerService 是否存在
+        Class<?> locationManagerServiceClass = loadClassIfExist(lpparam, "com.android.server.location.LocationManagerService");
+        if (locationManagerServiceClass == null) {
+            XposedBridge.log("LocationManagerService does not exist.");
+            return;
+        }
+    
+        // 獲取 recoverRealProviderLocked 方法
+        Method recoverRealProviderLockedMethod = XposedHelpers.findMethodExactIfExists(
+            locationManagerServiceClass,
+            "recoverRealProviderLocked",
+            String.class // 方法參數類型
+        );
+    
+        if (recoverRealProviderLockedMethod == null) {
+            XposedBridge.log("Method recoverRealProviderLocked does not exist.");
+            return;
+        }
+    
+        // Hook recoverRealProviderLocked 方法
+        XposedBridge.hookMethod(recoverRealProviderLockedMethod, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                XposedBridge.log("Preventing recoverRealProviderLocked from executing.");
+                param.setResult(null); // 阻止原方法執行
+            }
+        });
     }
 
     private void tryHideSamsungIAPDialog(XC_LoadPackage.LoadPackageParam lpparam) {
@@ -116,6 +148,16 @@ public class XposedModule implements IXposedHookZygoteInit, IXposedHookLoadPacka
 
         // Google Play Services
         XposedHelpers.findAndHookMethod("android.location.Location", lpparam.classLoader, "getExtras", hideMockGooglePlayServicesHook);
+
+        XposedHelpers.findAndHookMethod(LocationManager.class,"isProviderEnabled",
+                String.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        param.setResult(true);
+                    }
+                }
+            );
 
         // New way of checking if location is mocked, SDK 18+
         // deprecated in API level 31
